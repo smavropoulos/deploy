@@ -1,3 +1,4 @@
+// Package cmd implements the CLI commands for the deploy tool.
 package cmd
 
 import (
@@ -16,6 +17,7 @@ import (
 	"github.com/smavropoulos/deploy/db"
 	"github.com/smavropoulos/deploy/deployers"
 	"github.com/smavropoulos/deploy/eval"
+	"github.com/smavropoulos/deploy/redact"
 	"github.com/smavropoulos/deploy/resolver"
 	"github.com/smavropoulos/deploy/types"
 )
@@ -64,6 +66,9 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 
 			hash := fmt.Sprintf("%x", sha256.Sum256(data))
 
+			// Build redactor from secrets list
+			rd := redact.New(env, df.Secrets)
+
 			total := len(df.Deploy)
 
 			pterm.Println()
@@ -101,6 +106,7 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("step %q description: %w", step.Name, err)
 				}
+				desc = rd.Redact(desc)
 				id, err := database.InsertDeployment(step.Name, hash, desc, filePath)
 				if err != nil {
 					return fmt.Errorf("record deployment: %w", err)
@@ -111,6 +117,7 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 					Start()
 
 				output, stepErr := d.Deploy(context.Background(), step, env)
+				output = rd.Redact(output)
 
 				status := "success"
 				if stepErr != nil {
@@ -124,7 +131,7 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 					if output != "" {
 						pterm.DefaultBox.WithTitle("Output").Println(strings.TrimSpace(output))
 					}
-					return fmt.Errorf("step %q failed: %w", step.Name, stepErr)
+					return fmt.Errorf("step %q failed: %s", step.Name, rd.Redact(stepErr.Error()))
 				}
 				spinner.Success(fmt.Sprintf("%s %s", prefix, step.Name))
 				if output != "" {

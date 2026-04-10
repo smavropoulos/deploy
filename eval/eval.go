@@ -1,3 +1,11 @@
+// Package eval provides expr-lang expression evaluation for deployment YAML files.
+//
+// It supports two forms of substitution:
+//   - Simple variable expansion: ${VAR} and ${env.VAR}
+//   - Expression blocks: ${{ expr }} using the expr-lang engine
+//
+// All environment variables are available as top-level identifiers (e.g. VERSION)
+// and also under the "env" namespace (e.g. env.VERSION).
 package eval
 
 import (
@@ -8,6 +16,7 @@ import (
 	"github.com/expr-lang/expr"
 )
 
+// exprPattern matches ${{ expr }} blocks in strings.
 var exprPattern = regexp.MustCompile(`\$\{\{(.+?)\}\}`)
 
 // Expand processes a string, evaluating any ${{ expr }} blocks using expr-lang.
@@ -67,6 +76,7 @@ func EvalBool(expression string, env map[string]string) (bool, error) {
 	return b, nil
 }
 
+// expandEnvVars performs simple ${VAR} and ${env.VAR} substitution.
 func expandEnvVars(s string, env map[string]string) string {
 	for k, v := range env {
 		s = strings.ReplaceAll(s, "${env."+k+"}", v)
@@ -75,6 +85,7 @@ func expandEnvVars(s string, env map[string]string) string {
 	return s
 }
 
+// toAnyMap converts a string map to an any map for use with expr-lang.
 func toAnyMap(m map[string]string) map[string]any {
 	out := make(map[string]any, len(m))
 	for k, v := range m {

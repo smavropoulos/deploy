@@ -1,3 +1,13 @@
+// pluginDeployer implements the Deployer interface for external plugins.
+//
+// External plugins are standalone executables that follow a simple JSON protocol:
+//
+//  1. The deploy tool sends a PluginRequest as JSON to the plugin's stdin.
+//  2. The plugin executes the deployment step.
+//  3. The plugin writes a PluginResponse as JSON to stdout.
+//
+// Plugin executables are discovered by name convention (deploy-plugin-<type>)
+// or registered explicitly via RegisterPath when resolved from a Git repository.
 package deployers
 
 import (
@@ -79,6 +89,8 @@ func (p *pluginDeployer) Deploy(ctx context.Context, step types.DeployStep, env 
 	return resp.Output, nil
 }
 
+// execNames returns the list of candidate executable names for this plugin,
+// ordered from most specific (os-arch) to least specific (bare name).
 func (p *pluginDeployer) execNames() []string {
 	base := "deploy-plugin-" + p.typeName
 	ext := ""
@@ -96,8 +108,9 @@ func (p *pluginDeployer) execNames() []string {
 	return names
 }
 
-// resolveExecutable looks for the plugin in PATH, then in a ./plugins directory
-// next to the current working directory. Probes OS/arch-specific variants.
+// resolveExecutable looks for the plugin binary in PATH, then in a ./plugins
+// directory relative to the current working directory.
+// It probes OS/architecture-specific variants in order of specificity.
 func (p *pluginDeployer) resolveExecutable() string {
 	for _, name := range p.execNames() {
 		// Check PATH

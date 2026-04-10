@@ -1,3 +1,10 @@
+// Package deployers provides a global registry for deployer implementations
+// and includes the built-in shell deployer and external plugin support.
+//
+// Built-in deployers register themselves in init() functions. External plugins
+// are registered at runtime via RegisterPath (from the resolver) or discovered
+// automatically by looking for deploy-plugin-<type> executables in PATH and
+// the ./plugins/ directory.
 package deployers
 
 import (

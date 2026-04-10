@@ -16,6 +16,9 @@ func init() {
 	Register(&shellDeployer{})
 }
 
+// shellDeployer is the built-in deployer that executes shell commands.
+// On Windows it uses cmd /C; on Unix it uses sh -c.
+// Commands support ${{ expr }} expansion via the eval package.
 type shellDeployer struct{}
 
 func (s *shellDeployer) Type() string { return "shell" }

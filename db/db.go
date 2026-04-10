@@ -1,3 +1,8 @@
+// Package db provides a SQLite-backed persistence layer for the deploy tool.
+//
+// It stores deployment execution records (status, output, timestamps) and
+// user-defined key-value configuration. The database is created automatically
+// on first use and migrations are applied on Open.
 package db
 
 import (

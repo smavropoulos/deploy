@@ -1,3 +1,14 @@
+// Package resolver handles fetching and caching external deployer plugins
+// referenced by the "uses" field in deployment YAML files.
+//
+// Plugins are specified as Git references (e.g. "github.com/owner/repo:v1.0.0").
+// On first use, the repository is cloned into .deploy/plugins/ and cached.
+// Each plugin repo must contain a deploy-plugin.yaml manifest that declares
+// the plugin's name, description, and entrypoint binary.
+//
+// The entrypoint is resolved in an OS/architecture-aware manner:
+//
+//	<base>-<os>-<arch>[.exe]  →  <base>-<os>[.exe]  →  <base>[.exe]  →  <base>
 package resolver
 
 import (
@@ -14,11 +25,11 @@ import (
 	"github.com/smavropoulos/deploy/deployers"
 )
 
-// PluginManifest is the deploy-plugin.yaml found in a plugin repo.
+// PluginManifest represents the deploy-plugin.yaml file found in a plugin repository.
 type PluginManifest struct {
-	Name        string `yaml:"name"`        // deployer type name (e.g. "ftp-deploy")
-	Description string `yaml:"description"` // human-readable description
-	Entrypoint  string `yaml:"entrypoint"`  // base name of the executable (no .exe), resolved per OS/arch at runtime
+	Name        string `yaml:"name"`        // Deployer type name registered in the registry (e.g. "ftp-deploy")
+	Description string `yaml:"description"` // Human-readable description of the plugin
+	Entrypoint  string `yaml:"entrypoint"`  // Base name of the executable (without .exe); resolved per OS/arch
 }
 
 // ResolveAll fetches/caches all plugins declared in uses and registers them.
@@ -103,6 +114,7 @@ func parseRef(ref string) (string, string, error) {
 	return repoURL, tag, nil
 }
 
+// readManifest reads and validates the deploy-plugin.yaml file in a plugin directory.
 func readManifest(pluginDir string) (*PluginManifest, error) {
 	data, err := os.ReadFile(filepath.Join(pluginDir, "deploy-plugin.yaml"))
 	if err != nil {

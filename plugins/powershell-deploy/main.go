@@ -1,3 +1,14 @@
+// powershell-deploy is an external deployer plugin that executes PowerShell commands.
+//
+// It runs commands via pwsh (PowerShell Core) in non-interactive mode.
+// Commands can be specified via the "command" config key (single command)
+// or "commands" (newline-separated list). All commands are joined into
+// a single script block.
+//
+// Config keys:
+//
+//	command   - A single PowerShell command to execute
+//	commands  - Multiple commands separated by newlines
 package main
 
 import (
@@ -8,7 +19,7 @@ import (
 	"strings"
 )
 
-// PluginRequest matches the JSON payload sent by the deploy tool.
+// PluginRequest matches the JSON payload sent by the deploy tool on stdin.
 type PluginRequest struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
@@ -16,7 +27,7 @@ type PluginRequest struct {
 	Env         map[string]string `json:"env"`
 }
 
-// PluginResponse is the JSON payload returned to the deploy tool.
+// PluginResponse is the JSON payload returned to the deploy tool on stdout.
 type PluginResponse struct {
 	Success bool   `json:"success"`
 	Output  string `json:"output"`
