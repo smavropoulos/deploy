@@ -1,0 +1,3 @@
+name: powershell-deploy
+description: Runs PowerShell commands locally. Commands are passed via the "commands" config key (newline-separated) or individual "command" key.
+entrypoint: deploy-plugin-powershell-deploy

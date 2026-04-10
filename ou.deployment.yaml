@@ -1,0 +1,34 @@
+# this file describes how the deploy tool should handle 
+# online updates.
+
+# run it with deploy -f ou.deployment.yaml -e key=value
+
+env:  
+  VERSION: ${VERSION:-"2026.1.3"} # default value for VERSION is 2026.1.3, but it can be overridden by passing a different value when running the deploy command.
+  setupPath: /path/to/setup # example of another env variable, you can add as many as you need
+# you can use the env variables throughout the deployment file, for example:
+# using env.VERSION
+deploy:
+  - name: Deploy
+    description: Deploying the application with version ${VERSION}
+    command: 
+      - | 
+        if [ -z "$VERSION" ]; then
+          echo "VERSION is not set. Please provide a version to deploy."
+          exit 1
+        fi
+
+        if [ -z "$setupPath" ]; then
+          echo "setupPath is not set. Please provide a setup path."
+          exit 1
+        fi
+
+        # check if the setup path exists
+        if [ ! -d "$setupPath" ]; then
+          echo "The setup path $setupPath does not exist. Please provide a valid setup path."
+          exit 1
+        fi
+
+
+        echo "Deploying ${env.setupPath} ${env.VERSION}"
+      - echo "Deployment completed successfully."
