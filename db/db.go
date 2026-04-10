@@ -47,6 +47,7 @@ func migrate(conn *sql.DB) error {
 		description TEXT,
 		file_path   TEXT NOT NULL,
 		status      TEXT NOT NULL DEFAULT 'pending',
+		plugin_name TEXT NOT NULL DEFAULT 'shell',
 		started_at  DATETIME,
 		finished_at DATETIME,
 		output      TEXT,
@@ -61,6 +62,15 @@ func migrate(conn *sql.DB) error {
 		value      TEXT NOT NULL,
 		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS plugins (
+		name         TEXT PRIMARY KEY,
+		source       TEXT NOT NULL,
+		version      TEXT NOT NULL DEFAULT '',
+		exec_path    TEXT NOT NULL,
+		installed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		last_used_at DATETIME
+	);
 	`
 	_, err := conn.Exec(ddl)
 	return err
@@ -69,11 +79,11 @@ func migrate(conn *sql.DB) error {
 // --- Deployment operations ---
 
 // InsertDeployment creates a new deployment record and returns its ID.
-func (d *DB) InsertDeployment(name, hash, description, filePath string) (int64, error) {
+func (d *DB) InsertDeployment(name, hash, description, filePath, pluginName string) (int64, error) {
 	res, err := d.conn.Exec(
-		`INSERT INTO deployments (name, hash, description, file_path, status, started_at)
-		 VALUES (?, ?, ?, ?, 'running', ?)`,
-		name, hash, description, filePath, time.Now().UTC(),
+		`INSERT INTO deployments (name, hash, description, file_path, plugin_name, status, started_at)
+		 VALUES (?, ?, ?, ?, ?, 'running', ?)`,
+		name, hash, description, filePath, pluginName, time.Now().UTC(),
 	)
 	if err != nil {
 		return 0, err
@@ -93,7 +103,7 @@ func (d *DB) UpdateDeploymentStatus(id int64, status, output string) error {
 // GetDeployment returns a deployment by ID.
 func (d *DB) GetDeployment(id int64) (*types.DeploymentRecord, error) {
 	row := d.conn.QueryRow(
-		`SELECT id, name, hash, description, file_path, status, started_at, finished_at, output, created_at
+		`SELECT id, name, hash, description, file_path, status, plugin_name, started_at, finished_at, output, created_at
 		 FROM deployments WHERE id = ?`, id,
 	)
 	return scanDeployment(row)
@@ -101,7 +111,7 @@ func (d *DB) GetDeployment(id int64) (*types.DeploymentRecord, error) {
 
 // QueryDeployments searches deployments by an optional filter (name, hash, status, or description substring).
 func (d *DB) QueryDeployments(filter string) ([]types.DeploymentRecord, error) {
-	query := `SELECT id, name, hash, description, file_path, status, started_at, finished_at, output, created_at
+	query := `SELECT id, name, hash, description, file_path, status, plugin_name, started_at, finished_at, output, created_at
 		FROM deployments`
 	var args []any
 	if filter != "" {
@@ -121,7 +131,7 @@ func (d *DB) QueryDeployments(filter string) ([]types.DeploymentRecord, error) {
 		var r types.DeploymentRecord
 		var finishedAt sql.NullTime
 		if err := rows.Scan(&r.ID, &r.Name, &r.Hash, &r.Description, &r.FilePath,
-			&r.Status, &r.StartedAt, &finishedAt, &r.Output, &r.CreatedAt); err != nil {
+			&r.Status, &r.PluginName, &r.StartedAt, &finishedAt, &r.Output, &r.CreatedAt); err != nil {
 			return nil, err
 		}
 		if finishedAt.Valid {
@@ -136,7 +146,7 @@ func scanDeployment(row *sql.Row) (*types.DeploymentRecord, error) {
 	var r types.DeploymentRecord
 	var finishedAt sql.NullTime
 	if err := row.Scan(&r.ID, &r.Name, &r.Hash, &r.Description, &r.FilePath,
-		&r.Status, &r.StartedAt, &finishedAt, &r.Output, &r.CreatedAt); err != nil {
+		&r.Status, &r.PluginName, &r.StartedAt, &finishedAt, &r.Output, &r.CreatedAt); err != nil {
 		return nil, err
 	}
 	if finishedAt.Valid {
@@ -197,4 +207,56 @@ func (d *DB) ListConfig() ([]types.ConfigEntry, error) {
 		entries = append(entries, c)
 	}
 	return entries, rows.Err()
+}
+
+// --- Plugin operations ---
+
+// UpsertPlugin records a plugin, updating it if it already exists.
+func (d *DB) UpsertPlugin(name, source, version, execPath string) error {
+	_, err := d.conn.Exec(
+		`INSERT INTO plugins (name, source, version, exec_path, installed_at)
+		 VALUES (?, ?, ?, ?, ?)
+		 ON CONFLICT(name) DO UPDATE SET
+		   source = excluded.source,
+		   version = excluded.version,
+		   exec_path = excluded.exec_path,
+		   installed_at = excluded.installed_at`,
+		name, source, version, execPath, time.Now().UTC(),
+	)
+	return err
+}
+
+// TouchPluginUsed updates the last_used_at timestamp for a plugin.
+func (d *DB) TouchPluginUsed(name string) error {
+	_, err := d.conn.Exec(
+		`UPDATE plugins SET last_used_at = ? WHERE name = ?`,
+		time.Now().UTC(), name,
+	)
+	return err
+}
+
+// ListPlugins returns all registered plugins.
+func (d *DB) ListPlugins() ([]types.PluginRecord, error) {
+	rows, err := d.conn.Query(
+		`SELECT name, source, version, exec_path, installed_at, last_used_at FROM plugins ORDER BY name`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var plugins []types.PluginRecord
+	for rows.Next() {
+		var p types.PluginRecord
+		var lastUsed sql.NullTime
+		if err := rows.Scan(&p.Name, &p.Source, &p.Version, &p.ExecPath,
+			&p.InstalledAt, &lastUsed); err != nil {
+			return nil, err
+		}
+		if lastUsed.Valid {
+			p.LastUsedAt = &lastUsed.Time
+		}
+		plugins = append(plugins, p)
+	}
+	return plugins, rows.Err()
 }

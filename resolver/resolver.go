@@ -22,6 +22,7 @@ import (
 	"github.com/pterm/pterm"
 	"gopkg.in/yaml.v3"
 
+	"github.com/smavropoulos/deploy/db"
 	"github.com/smavropoulos/deploy/deployers"
 )
 
@@ -29,11 +30,13 @@ import (
 type PluginManifest struct {
 	Name        string `yaml:"name"`        // Deployer type name registered in the registry (e.g. "ftp-deploy")
 	Description string `yaml:"description"` // Human-readable description of the plugin
+	Version     string `yaml:"version"`     // Semantic version (e.g. "1.0.0")
 	Entrypoint  string `yaml:"entrypoint"`  // Base name of the executable (without .exe); resolved per OS/arch
 }
 
 // ResolveAll fetches/caches all plugins declared in uses and registers them.
-func ResolveAll(uses []string, cacheDir string) error {
+// If database is non-nil, resolved plugins are recorded in the plugins table.
+func ResolveAll(uses []string, cacheDir string, database *db.DB) error {
 	if len(uses) == 0 {
 		return nil
 	}
@@ -43,7 +46,7 @@ func ResolveAll(uses []string, cacheDir string) error {
 	}
 
 	for _, ref := range uses {
-		if err := resolveOne(ref, cacheDir); err != nil {
+		if err := resolveOne(ref, cacheDir, database); err != nil {
 			return fmt.Errorf("resolve %q: %w", ref, err)
 		}
 	}
@@ -52,7 +55,7 @@ func ResolveAll(uses []string, cacheDir string) error {
 
 // resolveOne parses a ref like "github.com/owner/repo:tag", clones or
 // updates the repo, reads deploy-plugin.yaml, and registers the deployer.
-func resolveOne(ref, cacheDir string) error {
+func resolveOne(ref, cacheDir string, database *db.DB) error {
 	repoURL, tag, err := parseRef(ref)
 	if err != nil {
 		return err
@@ -93,6 +96,17 @@ func resolveOne(ref, cacheDir string) error {
 
 	// Register as an external plugin deployer pointing at the resolved executable
 	deployers.RegisterPath(manifest.Name, entrypoint)
+
+	// Record the plugin in the database for tracking
+	if database != nil {
+		source := "git:" + repoURL
+		version := manifest.Version
+		if version == "" {
+			version = tag
+		}
+		database.UpsertPlugin(manifest.Name, source, version, entrypoint)
+	}
+
 	pterm.Success.Printfln("Registered deployer %q from %s@%s", manifest.Name, repoURL, tag)
 	return nil
 }

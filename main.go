@@ -54,6 +54,7 @@ func main() {
 	rootCmd.AddCommand(cmd.NewRunCmd(database))
 	rootCmd.AddCommand(cmd.NewConfigCmd(database))
 	rootCmd.AddCommand(cmd.NewCheckCmd(database))
+	rootCmd.AddCommand(cmd.NewPluginsCmd(database))
 
 	if err := rootCmd.Execute(); err != nil {
 		pterm.Error.Println(err)

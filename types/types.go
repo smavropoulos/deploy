@@ -63,6 +63,7 @@ type DeploymentRecord struct {
 	Description string
 	FilePath    string
 	Status      string // "pending", "running", "success", or "failed"
+	PluginName  string // Deployer type that executed this step (e.g. "shell", "ftp-deploy")
 	StartedAt   time.Time
 	FinishedAt  *time.Time // nil if still running
 	Output      string
@@ -74,4 +75,15 @@ type ConfigEntry struct {
 	Key       string
 	Value     string
 	UpdatedAt time.Time
+}
+
+// PluginRecord is a row in the SQLite plugins table, tracking installed
+// deployer plugins with their source, version, and usage timestamps.
+type PluginRecord struct {
+	Name        string // Deployer type name (e.g. "ftp-deploy")
+	Source      string // Origin: "local", "git:host/owner/repo", etc.
+	Version     string // Git tag or "" for local plugins
+	ExecPath    string // Absolute path to the plugin binary
+	InstalledAt time.Time
+	LastUsedAt  *time.Time // nil if never used
 }

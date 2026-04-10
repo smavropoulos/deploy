@@ -58,7 +58,7 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 			// Resolve uses: fetch & register external deployers
 			if len(df.Uses) > 0 {
 				cacheDir := filepath.Join(".", ".deploy", "plugins")
-				if err := resolver.ResolveAll(df.Uses, cacheDir); err != nil {
+				if err := resolver.ResolveAll(df.Uses, cacheDir, database); err != nil {
 					return err
 				}
 				pterm.Println()
@@ -107,7 +107,7 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 					return fmt.Errorf("step %q description: %w", step.Name, err)
 				}
 				desc = rd.Redact(desc)
-				id, err := database.InsertDeployment(step.Name, hash, desc, filePath)
+				id, err := database.InsertDeployment(step.Name, hash, desc, filePath, typeName)
 				if err != nil {
 					return fmt.Errorf("record deployment: %w", err)
 				}
@@ -118,6 +118,15 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 
 				output, stepErr := d.Deploy(context.Background(), step, env)
 				output = rd.Redact(output)
+
+				// Record local plugin usage in the DB
+				if typeName != "shell" {
+					if execPath := deployers.ExecPath(typeName); execPath != "" {
+						version := readPluginVersion(execPath)
+						database.UpsertPlugin(typeName, "local", version, execPath)
+					}
+					database.TouchPluginUsed(typeName)
+				}
 
 				status := "success"
 				if stepErr != nil {
@@ -178,4 +187,38 @@ func resolveTypeName(ref string) string {
 		return ref[idx+1:]
 	}
 	return ref
+}
+
+// readPluginVersion looks for a deploy-plugin.yaml manifest next to the
+// plugin binary or in a sibling directory named after the plugin type,
+// and returns its version field, or "" if not found.
+func readPluginVersion(execPath string) string {
+	dir := filepath.Dir(execPath)
+
+	// Try next to the binary first
+	candidates := []string{
+		filepath.Join(dir, "deploy-plugin.yaml"),
+	}
+
+	// Try in a subdirectory matching the plugin name (e.g. plugins/ftp-deploy/)
+	base := filepath.Base(execPath)
+	base = strings.TrimSuffix(base, filepath.Ext(base)) // strip .exe
+	base = strings.TrimPrefix(base, "deploy-plugin-")   // strip prefix → "ftp-deploy"
+	if base != "" {
+		candidates = append(candidates, filepath.Join(dir, base, "deploy-plugin.yaml"))
+	}
+
+	for _, path := range candidates {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		var m struct {
+			Version string `yaml:"version"`
+		}
+		if yaml.Unmarshal(data, &m) == nil && m.Version != "" {
+			return m.Version
+		}
+	}
+	return ""
 }

@@ -11,5 +11,6 @@
 #                   deploy-plugin-template-deploy
 
 name: template-deploy
+version: 0.1.0
 description: A starter template plugin. Copy and modify to build your own deployer.
 entrypoint: deploy-plugin-template-deploy

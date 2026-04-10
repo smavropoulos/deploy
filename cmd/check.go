@@ -72,7 +72,7 @@ func statusStyle(status string) string {
 
 func printDeploymentsTable(records []types.DeploymentRecord) {
 	data := pterm.TableData{
-		{"ID", "Name", "Status", "Description", "Hash", "Started", "Finished"},
+		{"ID", "Name", "Plugin", "Status", "Description", "Hash", "Started", "Finished"},
 	}
 	for _, r := range records {
 		finished := "-"
@@ -86,6 +86,7 @@ func printDeploymentsTable(records []types.DeploymentRecord) {
 		data = append(data, []string{
 			fmt.Sprintf("%d", r.ID),
 			r.Name,
+			pterm.Gray(r.PluginName),
 			statusStyle(r.Status),
 			r.Description,
 			hash,

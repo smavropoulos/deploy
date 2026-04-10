@@ -1,3 +1,4 @@
 name: ftp-deploy
+version: 1.0.0
 description: Upload files and directories to an FTP/FTPS server. Supports recursive uploads, directory creation, and TLS via curl.
 entrypoint: deploy-plugin-ftp-deploy

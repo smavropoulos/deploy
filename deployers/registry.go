@@ -45,9 +45,29 @@ func Get(typeName string) (types.Deployer, error) {
 
 	// Try external plugin
 	p := &pluginDeployer{typeName: typeName}
-	if p.resolveExecutable() != "" {
+	if path := p.resolveExecutable(); path != "" {
+		p.execPath = path
+		// Cache in registry for subsequent lookups
+		mu.Lock()
+		registry[typeName] = p
+		mu.Unlock()
 		return p, nil
 	}
 
 	return nil, fmt.Errorf("unknown deployer type %q (no built-in or plugin found)", typeName)
+}
+
+// ExecPath returns the resolved executable path for a deployer, or ""
+// for built-in deployers (like "shell") that don't have an external binary.
+func ExecPath(typeName string) string {
+	mu.RLock()
+	d, ok := registry[typeName]
+	mu.RUnlock()
+	if ok {
+		if p, isPlugin := d.(*pluginDeployer); isPlugin {
+			return p.execPath
+		}
+		return ""
+	}
+	return ""
 }

@@ -1,3 +1,4 @@
 name: powershell-deploy
+version: 1.0.0
 description: Execute PowerShell commands via pwsh. Supports single or multi-line scripts via the "command" and "commands" config keys.
 entrypoint: deploy-plugin-powershell-deploy
