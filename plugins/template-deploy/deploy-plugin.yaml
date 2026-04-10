@@ -1,0 +1,15 @@
+# Plugin manifest — required for Git-based plugin resolution via `uses:`.
+#
+# Fields:
+#   name        - The deployer type name. This is what users put in `type:` in their YAML.
+#   description - A short description of what the plugin does.
+#   entrypoint  - The base name of the plugin executable (without .exe).
+#                 The deploy tool automatically probes OS/arch variants:
+#                   deploy-plugin-template-deploy-windows-amd64.exe
+#                   deploy-plugin-template-deploy-windows.exe
+#                   deploy-plugin-template-deploy.exe
+#                   deploy-plugin-template-deploy
+
+name: template-deploy
+description: A starter template plugin. Copy and modify to build your own deployer.
+entrypoint: deploy-plugin-template-deploy

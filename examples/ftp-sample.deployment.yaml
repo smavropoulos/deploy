@@ -1,0 +1,34 @@
+env:
+  FTP_HOST: 127.0.0.1
+  FTP_USER: deployer
+  FTP_PASS: secret123
+  APP_NAME: my-app
+  VERSION: "1.0.0"
+
+deploy:
+  - name: Build artifacts
+    description: Create sample build output
+    command:
+      - echo "Building ${APP_NAME} v${VERSION}..."
+      - echo "Build complete."
+
+  - name: Upload to FTP
+    type: ftp-deploy
+    description: Upload build artifacts to ${FTP_HOST}
+    config:
+      host: "${FTP_HOST}"
+      port: "21"
+      username: "${FTP_USER}"
+      password: "${FTP_PASS}"
+      local_path: "./dist"
+      remote_path: "/releases/${APP_NAME}/${VERSION}"
+
+  - name: Upload single file
+    type: ftp-deploy
+    description: Upload changelog to ${FTP_HOST}
+    config:
+      host: "${FTP_HOST}"
+      username: "${FTP_USER}"
+      password: "${FTP_PASS}"
+      local_path: "./CHANGELOG.md"
+      remote_path: "/releases/${APP_NAME}/${VERSION}/"

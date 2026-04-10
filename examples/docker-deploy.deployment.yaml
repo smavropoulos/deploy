@@ -1,0 +1,50 @@
+# Example: Docker build and push pipeline.
+#
+# Demonstrates a typical containerized deployment: build a Docker image,
+# tag it, push to a registry, and deploy to a target environment.
+#
+# Usage:
+#   deploy run -f examples/docker-deploy.deployment.yaml
+#   deploy run -f examples/docker-deploy.deployment.yaml -e VERSION=2.0.0 -e ENVIRONMENT=production
+
+env:
+  APP_NAME: web-api
+  VERSION: ${VERSION:-"latest"}
+  REGISTRY: ghcr.io/myorg
+  ENVIRONMENT: ${ENVIRONMENT:-"staging"}
+
+secrets:
+  - REGISTRY_TOKEN
+
+deploy:
+  - name: Lint
+    description: Linting Dockerfile
+    command:
+      - echo "Checking Dockerfile best practices..."
+      - echo "Dockerfile OK."
+
+  - name: Build image
+    description: Building ${{ REGISTRY }}/${{ APP_NAME }}:${{ VERSION }}
+    command:
+      - echo "docker build -t ${REGISTRY}/${APP_NAME}:${VERSION} ."
+      - echo "Image built successfully."
+
+  - name: Tag latest
+    description: Tagging image as latest
+    when: |
+      not (VERSION contains "beta" or VERSION contains "rc")
+    command:
+      - echo "docker tag ${REGISTRY}/${APP_NAME}:${VERSION} ${REGISTRY}/${APP_NAME}:latest"
+
+  - name: Push
+    description: Pushing image to ${{ REGISTRY }}
+    command:
+      - echo "docker push ${REGISTRY}/${APP_NAME}:${VERSION}"
+      - echo "Push complete."
+
+  - name: Deploy
+    description: Rolling out to ${{ ENVIRONMENT }}
+    command:
+      - echo "kubectl set image deployment/${APP_NAME} ${APP_NAME}=${REGISTRY}/${APP_NAME}:${VERSION}"
+      - echo "Waiting for rollout..."
+      - echo "Rollout complete in ${ENVIRONMENT}."

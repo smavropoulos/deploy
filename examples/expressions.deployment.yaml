@@ -1,0 +1,42 @@
+# Example: Expression-powered pipeline.
+#
+# Demonstrates advanced ${{ expr }} usage including string operations,
+# ternary expressions, and conditional step execution with `when`.
+#
+# Usage:
+#   deploy run -f examples/expressions.deployment.yaml
+#   deploy run -f examples/expressions.deployment.yaml -e VERSION=2.0.0-beta
+
+env:
+  VERSION: ${VERSION:-"1.5.3"}
+  APP_NAME: calculator
+  ENABLE_DOCS: "true"
+
+deploy:
+  - name: Version info
+    description: |
+      ${{ APP_NAME }} v${{ VERSION }} — ${{ VERSION startsWith '1' ? "stable release" : "pre-release" }}
+    command:
+      - echo "Version = ${VERSION}"
+
+  - name: Build docs
+    description: Building documentation
+    when: ENABLE_DOCS == "true"
+    command:
+      - echo "Generating docs for ${APP_NAME} v${VERSION}..."
+      - echo "Docs ready."
+
+  - name: Skip on pre-release
+    description: Publishing to package registry
+    when: |
+      not (VERSION contains "beta" or VERSION contains "alpha" or VERSION contains "rc")
+    command:
+      - echo "Publishing ${APP_NAME} v${VERSION} to registry..."
+      - echo "Published."
+
+  - name: Pre-release notice
+    description: Skipping publish for pre-release ${{ VERSION }}
+    when: |
+      VERSION contains "beta" or VERSION contains "alpha" or VERSION contains "rc"
+    command:
+      - echo "This is a pre-release build — skipping registry publish."

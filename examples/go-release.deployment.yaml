@@ -1,0 +1,45 @@
+# Example: Go project build, test, and release pipeline.
+#
+# A practical example of building a Go project — running tests,
+# building binaries, and creating release artifacts.
+#
+# Usage:
+#   deploy run -f examples/go-release.deployment.yaml
+#   deploy run -f examples/go-release.deployment.yaml -e VERSION=2.0.0
+
+env:
+  APP_NAME: myapp
+  VERSION: ${VERSION:-"1.0.0"}
+  GOOS: windows
+  GOARCH: amd64
+
+deploy:
+  - name: Clean
+    description: Cleaning build artifacts
+    command:
+      - echo "Removing old build artifacts..."
+
+  - name: Test
+    description: Running Go tests
+    command:
+      - echo "Running go test ./..."
+      - echo "ok  github.com/example/myapp  0.42s"
+      - echo "All tests passed."
+
+  - name: Build
+    description: Building ${{ APP_NAME }} v${{ VERSION }} (${{ GOOS }}/${{ GOARCH }})
+    command:
+      - echo "go build -ldflags \"-X main.Version=${VERSION}\" -o ${APP_NAME}.exe ."
+      - echo "Build complete."
+
+  - name: Package
+    description: Creating release archive
+    command:
+      - echo "Creating ${APP_NAME}-${VERSION}-${GOOS}-${GOARCH}.zip..."
+      - echo "Archive ready."
+
+  - name: Checksum
+    description: Generating SHA-256 checksum
+    command:
+      - echo "Computing checksum..."
+      - echo "a1b2c3d4  ${APP_NAME}-${VERSION}-${GOOS}-${GOARCH}.zip"

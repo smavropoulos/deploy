@@ -1,0 +1,29 @@
+env:
+  APP_NAME: my-app
+  VERSION: "1.0.0"
+  ENVIRONMENT: staging
+
+deploy:
+  - name: Validate
+    description: Validating ${{ APP_NAME }} v${{ VERSION }}
+    command:
+      - echo "Validating deployment of ${APP_NAME} version ${VERSION} to ${ENVIRONMENT}"
+      - echo "All checks passed."
+
+  - name: Build
+    description: Building ${{ APP_NAME }}
+    command:
+      - echo "Building ${APP_NAME} v${VERSION}..."
+      - echo "Build artifacts ready."
+
+  - name: Deploy
+    description: Deploying to ${{ ENVIRONMENT }}
+    when: ENVIRONMENT != ""
+    command:
+      - echo "Deploying ${APP_NAME} v${VERSION} to ${ENVIRONMENT}..."
+      - echo "Deployment successful!"
+
+  - name: Notify
+    description: Sending notification
+    command:
+      - echo "Notification - ${{ APP_NAME }} v${{ VERSION }} deployed to ${{ ENVIRONMENT }}"

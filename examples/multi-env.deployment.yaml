@@ -1,0 +1,45 @@
+# Example: Multi-environment deployment with conditional steps.
+#
+# Demonstrates using the `when` condition and env overrides to control
+# which steps run based on the target environment.
+#
+# Usage:
+#   deploy run -f examples/multi-env.deployment.yaml
+#   deploy run -f examples/multi-env.deployment.yaml -e ENVIRONMENT=production
+
+env:
+  APP_NAME: my-service
+  VERSION: ${VERSION:-"1.0.0"}
+  ENVIRONMENT: ${ENVIRONMENT:-"staging"}
+
+deploy:
+  - name: Build
+    description: Building ${{ APP_NAME }} v${{ VERSION }}
+    command:
+      - echo "Building ${APP_NAME} v${VERSION}..."
+
+  - name: Test
+    description: Running tests
+    command:
+      - echo "Running test suite..."
+      - echo "All tests passed."
+
+  - name: Deploy to staging
+    description: Deploying to staging environment
+    when: ENVIRONMENT == "staging"
+    command:
+      - echo "Deploying ${APP_NAME} v${VERSION} to staging..."
+      - echo "Staging deployment complete."
+
+  - name: Deploy to production
+    description: Deploying to production environment
+    when: ENVIRONMENT == "production"
+    command:
+      - echo "Running pre-production checks..."
+      - echo "Deploying ${APP_NAME} v${VERSION} to PRODUCTION..."
+      - echo "Production deployment complete."
+
+  - name: Notify
+    description: Sending deployment notification
+    command:
+      - echo "${APP_NAME} v${VERSION} deployed to ${ENVIRONMENT} successfully."

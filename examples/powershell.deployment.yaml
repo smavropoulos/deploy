@@ -1,0 +1,45 @@
+# Example: PowerShell plugin usage.
+#
+# Demonstrates using the powershell-deploy plugin to run PowerShell
+# commands and scripts as deployment steps.
+#
+# Prerequisites:
+#   - pwsh (PowerShell Core) installed
+#   - deploy-plugin-powershell-deploy.exe in ./plugins/ or PATH
+#
+# Usage:
+#   deploy run -f examples/powershell.deployment.yaml
+
+env:
+  APP_NAME: my-service
+  VERSION: ${VERSION:-"1.0.0"}
+  LOG_DIR: ./deploy-logs
+
+deploy:
+  - name: Setup
+    description: Creating log directory
+    command:
+      - echo "Setting up deployment environment..."
+
+  - name: System info
+    type: powershell-deploy
+    description: Gathering system information via PowerShell
+    config:
+      commands: |
+        Write-Host "Hostname: $env:COMPUTERNAME"
+        Write-Host "OS: $((Get-CimInstance Win32_OperatingSystem).Caption)"
+        Write-Host "PowerShell: $($PSVersionTable.PSVersion)"
+        Write-Host "Memory: $([math]::Round((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1MB, 2)) GB"
+
+  - name: Build report
+    type: powershell-deploy
+    description: Generating build report
+    config:
+      command: |
+        $report = @{
+            App     = "${APP_NAME}"
+            Version = "${VERSION}"
+            Date    = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            User    = $env:USERNAME
+        }
+        $report | Format-Table -AutoSize
