@@ -380,9 +380,43 @@ deploy/
 │   └── redact.go           # Secret value masking
 ├── resolver/
 │   └── resolver.go         # Git-based plugin fetching and caching
-└── plugins/                # Example plugins
-    ├── ftp-deploy/         # FTP/FTPS upload plugin
-    └── powershell-deploy/  # PowerShell script plugin
+├── plugins/                # Example plugins
+│   ├── ftp-deploy/         # FTP/FTPS upload plugin
+│   └── powershell-deploy/  # PowerShell script plugin
+└── examples/               # Example deployment YAML files
+    ├── sample.deployment.yaml
+    ├── ftp-sample.deployment.yaml
+    ├── multi-env.deployment.yaml
+    ├── secrets.deployment.yaml
+    ├── expressions.deployment.yaml
+    ├── go-release.deployment.yaml
+    ├── docker-deploy.deployment.yaml
+    ├── powershell.deployment.yaml
+    └── docker-compose.ftp.yaml
+```
+
+## Examples
+
+The `examples/` directory contains ready-to-run deployment files:
+
+| File | Description |
+|------|-------------|
+| `sample.deployment.yaml` | Basic multi-step pipeline with expressions and `when` conditions |
+| `multi-env.deployment.yaml` | Conditional steps based on target environment (staging vs production) |
+| `secrets.deployment.yaml` | Secret redaction — sensitive values masked with `***` in output |
+| `expressions.deployment.yaml` | Advanced `${{ expr }}` usage: ternaries, string ops, conditional logic |
+| `go-release.deployment.yaml` | Go project build, test, and release pipeline |
+| `docker-deploy.deployment.yaml` | Docker image build, tag, push, and deploy pipeline |
+| `powershell.deployment.yaml` | PowerShell plugin usage for system info and reports |
+| `ftp-sample.deployment.yaml` | FTP file and directory uploads (requires FTP server) |
+| `docker-compose.ftp.yaml` | Docker Compose file to spin up a test FTP server |
+
+Run any example:
+
+```bash
+deploy run -f examples/sample.deployment.yaml
+deploy run -f examples/multi-env.deployment.yaml -e ENVIRONMENT=production
+deploy run -f examples/secrets.deployment.yaml
 ```
 
 ## License
