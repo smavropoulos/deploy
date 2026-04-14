@@ -32,6 +32,21 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if filePath == "" {
+				matches, err := filepath.Glob("*.deployment.yaml")
+				if err != nil {
+					return fmt.Errorf("search for deployment files: %w", err)
+				}
+				if len(matches) == 0 {
+					return fmt.Errorf("no *.deployment.yaml file found in current directory; use -f to specify one")
+				}
+				if len(matches) > 1 {
+					return fmt.Errorf("multiple deployment files found: %s; use -f to specify one", strings.Join(matches, ", "))
+				}
+				filePath = matches[0]
+				pterm.Info.Printfln("Using %s", filePath)
+			}
+
 			data, err := os.ReadFile(filePath)
 			if err != nil {
 				return fmt.Errorf("read file: %w", err)
@@ -155,7 +170,6 @@ func NewRunCmd(database *db.DB) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&filePath, "file", "f", "", "Path to deployment YAML file")
-	cmd.MarkFlagRequired("file")
 	cmd.Flags().StringArrayVarP(&envOverrides, "env", "e", nil, "Environment overrides (key=value)")
 
 	return cmd

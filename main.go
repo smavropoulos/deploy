@@ -51,6 +51,7 @@ func main() {
 		SilenceErrors: true,
 	}
 
+	rootCmd.AddCommand(cmd.NewInitCmd(database))
 	rootCmd.AddCommand(cmd.NewRunCmd(database))
 	rootCmd.AddCommand(cmd.NewConfigCmd(database))
 	rootCmd.AddCommand(cmd.NewCheckCmd(database))

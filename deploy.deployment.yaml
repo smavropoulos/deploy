@@ -1,0 +1,10 @@
+env:
+  APP_NAME: deploy
+  VERSION: "1.0.0"
+
+deploy:
+  - name: Build
+    description: Building ${{ APP_NAME }} v${{ VERSION }}
+    command:
+      - echo "Building ${APP_NAME} v${VERSION}..."
+      - go build -o ${APP_NAME} .
