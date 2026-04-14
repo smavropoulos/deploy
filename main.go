@@ -52,6 +52,7 @@ func main() {
 	}
 
 	rootCmd.AddCommand(cmd.NewInitCmd(database))
+	rootCmd.AddCommand(cmd.NewNewCmd(database))
 	rootCmd.AddCommand(cmd.NewRunCmd(database))
 	rootCmd.AddCommand(cmd.NewConfigCmd(database))
 	rootCmd.AddCommand(cmd.NewCheckCmd(database))
